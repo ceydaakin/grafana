@@ -1,3 +1,4 @@
+import { alertRuleSearchSchema } from '../alert-rules/alertRuleFilters';
 import { buildAlertRuleLeaves } from '../alert-rules/alertRuleSearchQuery';
 
 import { parse } from './parser';
@@ -5,7 +6,7 @@ import { getRejectionIssues } from './searchRejection';
 
 function rejectionOf(query: string, causes: Array<{ field?: string; message: string }>) {
   const error = { status: 422, data: { message: 'invalid', details: { causes } } };
-  return getRejectionIssues(error, buildAlertRuleLeaves(parse(query, 'alert').filter));
+  return getRejectionIssues(error, buildAlertRuleLeaves(parse(query, alertRuleSearchSchema).filter));
 }
 
 describe('getRejectionIssues', () => {

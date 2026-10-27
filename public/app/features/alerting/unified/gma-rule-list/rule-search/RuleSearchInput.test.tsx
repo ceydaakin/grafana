@@ -1,14 +1,15 @@
 import { render, screen } from 'test/test-utils';
 
+import { alertRuleSearchSchema } from '../alert-rules/alertRuleFilters';
+
 import { RuleSearchInput } from './RuleSearchInput';
-import { alertFilters } from './alertFilters';
 import { type FilterIssue } from './parser';
 
 function renderInput(query = '', issues: FilterIssue[] = []) {
   const onApply = jest.fn();
   const view = render(
     <>
-      <RuleSearchInput query={query} onApply={onApply} filters={alertFilters} issues={issues} />
+      <RuleSearchInput query={query} onApply={onApply} filters={alertRuleSearchSchema.filters} issues={issues} />
       <button>elsewhere</button>
     </>
   );

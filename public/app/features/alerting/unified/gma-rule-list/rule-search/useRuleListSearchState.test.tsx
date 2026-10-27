@@ -2,20 +2,28 @@ import { act, getWrapper, renderHook } from 'test/test-utils';
 
 import { locationService } from '@grafana/runtime';
 
-import { type RuleKind } from '../shared/ruleKind';
+import { alertRuleSearchSchema } from '../alert-rules/alertRuleFilters';
+import { recordingRuleSearchSchema } from '../recording-rules/recordingRuleFilters';
 
-import { createEmptyFilter } from './ruleSearchFilter';
+import { type RuleSearchSchema } from './filterDefinitions';
+import { type SharedRuleFilter, createEmptyFilter } from './sharedRuleFilter';
 import { useRuleListSearchState } from './useRuleListSearchState';
 
-function renderAt(search: string, kind: RuleKind = 'alert') {
-  return renderHook(() => useRuleListSearchState(kind), {
+function renderAt<Filter extends SharedRuleFilter, Key extends string>(
+  search: string,
+  schema: RuleSearchSchema<Filter, Key>
+) {
+  return renderHook(() => useRuleListSearchState(schema), {
     wrapper: getWrapper({ renderWithRouter: true, historyOptions: { initialEntries: [`/rules${search}`] } }),
   });
 }
 
 describe('useRuleListSearchState', () => {
   it("reads the search parameter with the Alert rules page's filters", () => {
-    const { result } = renderAt(`?${new URLSearchParams({ search: 'state:bogus metric:cpu  folder:f1' })}`);
+    const { result } = renderAt(
+      `?${new URLSearchParams({ search: 'state:bogus metric:cpu  folder:f1' })}`,
+      alertRuleSearchSchema
+    );
 
     expect(result.current.query).toBe('state:bogus metric:cpu  folder:f1');
     expect(result.current.filter).toEqual({
@@ -27,13 +35,13 @@ describe('useRuleListSearchState', () => {
   });
 
   it("reads the search parameter with the Recording rules page's filters", () => {
-    const { result } = renderAt('?search=metric%3Acpu', 'recording');
+    const { result } = renderAt('?search=metric%3Acpu', recordingRuleSearchSchema);
 
     expect(result.current.filter).toEqual({ ...createEmptyFilter(), metric: 'cpu' });
   });
 
   it('writes an applied query as typed and keeps the other parameters', () => {
-    const { result } = renderAt('?view=folders');
+    const { result } = renderAt('?view=folders', alertRuleSearchSchema);
 
     act(() => result.current.applyQuery('"high load"   folder:f1'));
 
@@ -42,7 +50,7 @@ describe('useRuleListSearchState', () => {
   });
 
   it('adds no history entry when the applied query is applied again', () => {
-    const { result } = renderAt('?search=cpu');
+    const { result } = renderAt('?search=cpu', alertRuleSearchSchema);
     const entries = locationService.getHistory().length;
 
     act(() => result.current.applyQuery('cpu'));
@@ -51,7 +59,7 @@ describe('useRuleListSearchState', () => {
   });
 
   it('writes an empty search parameter for an empty query, rather than removing it', () => {
-    const { result } = renderAt('?search=cpu');
+    const { result } = renderAt('?search=cpu', alertRuleSearchSchema);
 
     act(() => result.current.applyQuery(''));
 
