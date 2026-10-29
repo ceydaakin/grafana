@@ -7,6 +7,7 @@ import { logWarning } from '@grafana/runtime';
 import {
   sceneGraph,
   type SceneComponentProps,
+  type SceneObject,
   SceneObjectBase,
   type SceneObjectRef,
   type SceneObjectState,
@@ -344,8 +345,8 @@ export class DashboardLayoutOrchestrator extends SceneObjectBase<DashboardLayout
       return;
     }
 
-    // Tabs can be dropped only to TabsLayoutManager
-    if (dropTarget instanceof TabsLayoutManager) {
+    // Tabs can be dropped only to TabsLayoutManager, and never into a tab bar nested inside the dragged tab
+    if (dropTarget instanceof TabsLayoutManager && !this._isInsideTab(dropTarget, this._tabDragState.tab)) {
       this._lastDropTarget = dropTarget;
     } else {
       this.cleanUpTabDropTarget();
@@ -877,6 +878,17 @@ export class DashboardLayoutOrchestrator extends SceneObjectBase<DashboardLayout
       parent = parent.parent;
     }
     return undefined;
+  }
+
+  private _isInsideTab(object: SceneObject, tab: TabItem): boolean {
+    let parent = object.parent;
+    while (parent) {
+      if (parent === tab) {
+        return true;
+      }
+      parent = parent.parent;
+    }
+    return false;
   }
 
   private _onNewPanelPointerMove = (evt: PointerEvent): void => {

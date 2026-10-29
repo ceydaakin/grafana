@@ -469,3 +469,60 @@ describe('cross-tab row dragging', () => {
     return { row, source, sourceTab, destination, tabs, dashboard, orchestrator };
   }
 });
+
+describe('cross-manager tab dragging', () => {
+  let deactivate: () => void;
+  afterEach(() => deactivate?.());
+
+  it('moves an outer tab into a nested tab bar that is not inside it', () => {
+    const { outerA, outerB, inner1, inner2, outerTabs, innerTabs, dashboard, orchestrator } = setupNestedTabs();
+
+    dragTabOver(orchestrator, outerB, outerTabs, innerTabs, inner2);
+    orchestrator.stopTabDrag(undefined);
+
+    expect(outerTabs.state.tabs).toEqual([outerA]);
+    expect(innerTabs.state.tabs).toEqual([inner1, outerB, inner2]);
+    expect(dashboard.state.sidebar.state.undoStack).toHaveLength(1);
+  });
+
+  it('keeps the tabs in place when an outer tab is dropped into the tab bar nested in it', () => {
+    const { outerA, outerB, inner1, inner2, outerTabs, innerTabs, dashboard, orchestrator } = setupNestedTabs();
+
+    dragTabOver(orchestrator, outerA, outerTabs, innerTabs, inner2);
+    orchestrator.stopTabDrag(undefined);
+
+    expect(outerTabs.state.tabs).toEqual([outerA, outerB]);
+    expect(innerTabs.state.tabs).toEqual([inner1, inner2]);
+    expect(outerA.parent).toBe(outerTabs);
+    expect(innerTabs.state.isDropTarget).toBeFalsy();
+    expect(dashboard.state.sidebar.state.undoStack).toHaveLength(0);
+  });
+
+  function dragTabOver(
+    orchestrator: DashboardLayoutOrchestrator,
+    tab: TabItem,
+    source: TabsLayoutManager,
+    target: TabsLayoutManager,
+    tabUnderMouse: TabItem
+  ) {
+    orchestrator['_sourceDropTarget'] = source;
+    orchestrator['_tabDragState'] = { tab, width: 100, height: 32, index: 0 };
+    orchestrator['_getDropTargetUnderMouse'] = jest.fn().mockReturnValue(target);
+    orchestrator['_getTabUnderMouse'] = jest.fn().mockReturnValue(tabUnderMouse.state.key);
+    orchestrator['_onTabDragPointerMove']({ clientX: 0, clientY: 0 } as PointerEvent);
+  }
+
+  function setupNestedTabs() {
+    const inner1 = new TabItem({ key: 'inner-1', title: 'Inner 1', layout: AutoGridLayoutManager.createEmpty() });
+    const inner2 = new TabItem({ key: 'inner-2', title: 'Inner 2', layout: AutoGridLayoutManager.createEmpty() });
+    const innerTabs = new TabsLayoutManager({ tabs: [inner1, inner2] });
+    const outerA = new TabItem({ key: 'outer-a', title: 'Outer A', layout: innerTabs });
+    const outerB = new TabItem({ key: 'outer-b', title: 'Outer B', layout: AutoGridLayoutManager.createEmpty() });
+    const outerTabs = new TabsLayoutManager({ tabs: [outerA, outerB] });
+    const dashboard = new DashboardScene({ isEditing: true, body: outerTabs });
+    deactivate = activateFullSceneTree(dashboard);
+    const orchestrator = dashboard.state.layoutOrchestrator!;
+
+    return { outerA, outerB, inner1, inner2, outerTabs, innerTabs, dashboard, orchestrator };
+  }
+});
