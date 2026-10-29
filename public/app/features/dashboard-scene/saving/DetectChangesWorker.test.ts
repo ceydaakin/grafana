@@ -1,6 +1,6 @@
+import { detectDashboardChanges } from './DetectChangesWorker';
 import { type DashboardChangesRequest } from './shared';
 
-import './DetectChangesWorker';
 
 describe('DetectChangesWorker', () => {
   afterEach(() => {
@@ -25,5 +25,15 @@ describe('DetectChangesWorker', () => {
 
     expect(postMessage).toHaveBeenCalledTimes(1);
     expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({ generation: 2, hasChanges: true }));
+  });
+
+  it('does not mark the dashboard as changed when only a panel plugin version differs', () => {
+    const makeDashboard = (pluginVersion: string) => ({
+      title: 'Dashboard',
+      schemaVersion: 30,
+      panels: [{ id: 1, type: 'timeseries', title: 'Panel', pluginVersion }],
+    });
+
+    expect(detectDashboardChanges(makeDashboard('13.0.0'), makeDashboard('10.0.0')).hasChanges).toBe(false);
   });
 });

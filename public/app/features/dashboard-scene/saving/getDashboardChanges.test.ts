@@ -395,6 +395,82 @@ describe('getDashboardChanges', () => {
   });
 });
 
+describe('getDashboardChanges with panel plugin versions', () => {
+  const makeDashboard = (pluginVersion: string, title = 'Panel'): Dashboard => ({
+    title: 'Dashboard',
+    schemaVersion: 1,
+    panels: [
+      { id: 1, type: 'timeseries', title, pluginVersion },
+      {
+        id: 2,
+        type: 'row',
+        title: 'Collapsed row',
+        collapsed: true,
+        panels: [{ id: 3, type: 'stat', title, pluginVersion }],
+      },
+    ],
+  });
+
+  it('does not report a change when only panel plugin versions differ', () => {
+    const result = getRawDashboardChanges(makeDashboard('10.0.0'), makeDashboard('13.0.0'));
+
+    expect(result.diffCount).toBe(0);
+    expect(result.hasChanges).toBe(false);
+    expect(result.changedSaveModel.panels?.[0]).toMatchObject({ pluginVersion: '13.0.0' });
+  });
+
+  it('still reports other panel changes', () => {
+    const result = getRawDashboardChanges(makeDashboard('10.0.0'), makeDashboard('13.0.0', 'Renamed'));
+
+    expect(result.diffCount).toBe(2);
+  });
+
+  it('does not report a change when only V2 panel plugin versions differ', () => {
+    const makeV2Dashboard = (version: string): DashboardV2Spec => ({
+      title: 'Dashboard V2',
+      cursorSync: 'Off',
+      editable: true,
+      links: [],
+      tags: [],
+      preload: false,
+      timeSettings: {
+        from: 'now-6h',
+        to: 'now',
+        autoRefresh: '',
+        autoRefreshIntervals: [],
+        hideTimepicker: false,
+        fiscalYearStartMonth: 0,
+      },
+      variables: [],
+      annotations: [],
+      layout: { kind: 'GridLayout', spec: { items: [] } },
+      elements: {
+        'panel-1': {
+          kind: 'Panel',
+          spec: {
+            id: 1,
+            title: 'Panel',
+            description: '',
+            links: [],
+            data: { kind: 'QueryGroup', spec: { queries: [], transformations: [], queryOptions: {} } },
+            vizConfig: {
+              kind: 'VizConfig',
+              group: 'timeseries',
+              version,
+              spec: { options: {}, fieldConfig: { defaults: {}, overrides: [] } },
+            },
+          },
+        },
+      },
+    });
+
+    const result = getRawDashboardV2Changes(makeV2Dashboard('10.0.0'), makeV2Dashboard('13.0.0'));
+
+    expect(result.diffCount).toBe(0);
+    expect(result.hasChanges).toBe(false);
+  });
+});
+
 describe('getDashboardChanges with origin filters', () => {
   const makeDashboardWithAdhoc = (filters: AdHocVariableFilter[]): Dashboard => {
     return {
