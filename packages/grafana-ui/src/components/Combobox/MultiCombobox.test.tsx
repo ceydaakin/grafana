@@ -748,6 +748,33 @@ describe('MultiCombobox', () => {
       expect(onClose).not.toHaveBeenCalled();
     });
   });
+
+  it('does not take focus when StrictMode replays its effects after a Suspense boundary reveals it again', async () => {
+    let resolveLazy: (component: { default: React.ComponentType }) => void = () => {};
+    const LazySibling = React.lazy(
+      () => new Promise<{ default: React.ComponentType }>((resolve) => (resolveLazy = resolve))
+    );
+
+    const Harness = ({ query }: { query: string }) => (
+      <React.StrictMode>
+        <input aria-label="Search" defaultValue={query} />
+        <React.Suspense fallback={null}>
+          <MultiCombobox options={[{ label: 'A', value: 'a' }]} value={[]} onChange={jest.fn()} />
+          {query.length > 1 && <LazySibling />}
+        </React.Suspense>
+      </React.StrictMode>
+    );
+
+    const { rerender } = render(<Harness query="c" />);
+    const search = screen.getByRole('textbox', { name: 'Search' });
+    search.focus();
+
+    // A sibling that suspends hides the already mounted combobox until it resolves
+    rerender(<Harness query="ce" />);
+    await act(async () => resolveLazy({ default: () => null }));
+
+    expect(search).toHaveFocus();
+  });
 });
 
 function promiseResolvesWith(value: ComboboxOption[], timeout = 0) {
