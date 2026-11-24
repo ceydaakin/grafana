@@ -3,15 +3,16 @@ import { useRef, useEffect } from 'react';
 
 import { type GrafanaTheme2 } from '@grafana/data';
 import { t, Trans } from '@grafana/i18n';
-import { Button, Icon, Modal, useStyles2 } from '@grafana/ui';
+import { Alert, Button, Icon, Modal, useStyles2 } from '@grafana/ui';
 
 type ConfirmModalProps = {
   isOpen: boolean;
   onCancel?: () => void;
   onDiscard?: () => void;
   onCopy?: () => void;
+  copyFailed?: boolean;
 };
-export function ConfirmModal({ isOpen, onCancel, onDiscard, onCopy }: ConfirmModalProps) {
+export function ConfirmModal({ isOpen, onCancel, onDiscard, onCopy, copyFailed }: ConfirmModalProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const styles = useStyles2(getStyles);
 
@@ -48,6 +49,16 @@ export function ConfirmModal({ isOpen, onCancel, onDiscard, onCopy }: ConfirmMod
           Do you want to copy your code to the clipboard?
         </Trans>
       </p>
+      {copyFailed && (
+        <Alert
+          severity="error"
+          title={t('grafana-sql.components.confirm-modal.copy-failed', 'Could not copy the code to the clipboard')}
+        >
+          <Trans i18nKey="grafana-sql.components.confirm-modal.copy-failed-description">
+            Your code has not been changed. Copy it manually, then discard it and switch, or try again.
+          </Trans>
+        </Alert>
+      )}
       <Modal.ButtonRow>
         <Button type="button" variant="secondary" onClick={onCancel} fill="outline">
           <Trans i18nKey="grafana-sql.components.confirm-modal.cancel">Cancel</Trans>

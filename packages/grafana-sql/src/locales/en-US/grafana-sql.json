@@ -6,6 +6,8 @@
         "cancel": "Cancel",
         "clipboard": "Do you want to copy your code to the clipboard?",
         "copy-code-and-switch": "Copy code and switch",
+        "copy-failed": "Could not copy the code to the clipboard",
+        "copy-failed-description": "Your code has not been changed. Copy it manually, then discard it and switch, or try again.",
         "discard-code-and-switch": "Discard code and switch",
         "warning": "Warning"
       },

@@ -55,6 +55,7 @@ export function QueryHeader({
 }: QueryHeaderProps) {
   const { editorMode } = query;
   const [showConfirm, setShowConfirm] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const toRawSql = db.toRawSql;
 
   const htmlId = useId();
@@ -83,6 +84,7 @@ export function QueryHeader({
       }
 
       if (editorMode === EditorMode.Code) {
+        setCopyFailed(false);
         setShowConfirm(true);
         return;
       }
@@ -280,15 +282,23 @@ export function QueryHeader({
 
         <ConfirmModal
           isOpen={showConfirm}
-          onCopy={() => {
+          copyFailed={copyFailed}
+          onCopy={async () => {
             reportInteraction('grafana_sql_editor_mode_changed', {
               datasource: query.datasource?.type,
               selectedEditorMode: EditorMode.Builder,
               type: 'copy',
             });
 
+            try {
+              await copyTextToClipboard(query.rawSql!);
+            } catch {
+              // Switching replaces the code, so keep it unless it actually reached the clipboard.
+              setCopyFailed(true);
+              return;
+            }
+
             setShowConfirm(false);
-            copyTextToClipboard(query.rawSql!).catch(() => {});
             onChange({
               ...query,
               rawSql: toRawSql(query),
